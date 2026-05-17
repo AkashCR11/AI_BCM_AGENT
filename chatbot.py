@@ -1,30 +1,19 @@
-import requests
+from huggingface_hub import InferenceClient
 import os
 
 def ask_ai(question):
-    API_URL = "https://api-inference.huggingface.co/models/gpt2"
-
-    headers = {
-        "Authorization": f"Bearer {os.getenv('HF_API_KEY')}"
-    }
-
-    payload = {
-        "inputs": question
-    }
-
     try:
-        response = requests.post(API_URL, headers=headers, json=payload)
+        client = InferenceClient(
+            token=os.getenv("HF_API_KEY")
+        )
 
-        if response.status_code == 200:
-            data = response.json()
+        response = client.text_generation(
+            model="HuggingFaceH4/zephyr-7b-beta",
+            prompt=question,
+            max_new_tokens=200
+        )
 
-            if isinstance(data, list):
-                return data[0].get("generated_text", "No response")
-            else:
-                return str(data)
-
-        else:
-            return f"⚠️ API Error: {response.status_code} - {response.text}"
+        return response
 
     except Exception as e:
         return f"⚠️ Error: {str(e)}"
