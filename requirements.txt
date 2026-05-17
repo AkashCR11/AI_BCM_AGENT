@@ -1,0 +1,11 @@
+openai
+streamlit
+langchain
+pandas
+numpy
+scikit-learn
+matplotlib
+python-dotenv
+transformers
+faiss-cpu
+plotly
