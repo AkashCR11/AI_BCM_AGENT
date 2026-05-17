@@ -7,13 +7,15 @@ def ask_ai(question):
             token=os.getenv("HF_API_KEY")
         )
 
-        response = client.text_generation(
+        response = client.chat_completion(
             model="HuggingFaceH4/zephyr-7b-beta",
-            prompt=question,
-            max_new_tokens=200
+            messages=[
+                {"role": "user", "content": question}
+            ],
+            max_tokens=200
         )
 
-        return response
+        return response.choices[0].message.content
 
     except Exception as e:
         return f"⚠️ Error: {str(e)}"
