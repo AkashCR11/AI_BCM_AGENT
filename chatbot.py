@@ -1,21 +1,19 @@
-from huggingface_hub import InferenceClient
-import os
+import requests
 
 def ask_ai(question):
     try:
-        client = InferenceClient(
-            token=os.getenv("HF_API_KEY")
+        response = requests.post(
+            "https://api-inference.huggingface.co/models/distilgpt2",
+            json={"inputs": question},
+            timeout=30
         )
 
-        response = client.chat_completion(
-            model="HuggingFaceH4/zephyr-7b-beta",
-            messages=[
-                {"role": "user", "content": question}
-            ],
-            max_tokens=200
-        )
+        if response.status_code == 200:
+            result = response.json()
+            return result[0]["generated_text"]
 
-        return response.choices[0].message.content
+        else:
+            return f"⚠️ API Error: {response.status_code}"
 
     except Exception as e:
         return f"⚠️ Error: {str(e)}"
