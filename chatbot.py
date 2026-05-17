@@ -3,14 +3,20 @@ import os
 
 def ask_ai(question):
     try:
-        # Configure API key
+        # Configure API
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-        # ✅ Use correct model
-        model = genai.GenerativeModel("gemini-1.0-pro")
+        # ✅ Correct working model
+        model = genai.GenerativeModel("gemini-1.5-flash")
 
-        # Generate response
-        response = model.generate_content(question)
+        # ✅ CORRECT way (must use generate_content)
+        response = model.generate_content(
+            question,
+            generation_config={
+                "temperature": 0.7,
+                "max_output_tokens": 300
+            }
+        )
 
         return response.text
 
