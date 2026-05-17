@@ -6,20 +6,14 @@ def ask_ai(question):
         api_key = os.getenv("GEMINI_API_KEY")
 
         if not api_key:
-            return "⚠️ Gemini API Key not found in Secrets"
+            return "⚠️ GEMINI_API_KEY missing in secrets"
 
         genai.configure(api_key=api_key)
 
-        # ✅ FINAL WORKING MODEL NAME
-        model = genai.GenerativeModel("models/gemini-1.5-flash-latest")
+        # ✅ Use correct modern model alias
+        model = genai.GenerativeModel("gemini-pro")
 
-        response = model.generate_content(
-            question,
-            generation_config={
-                "temperature": 0.7,
-                "max_output_tokens": 300
-            }
-        )
+        response = model.generate_content(question)
 
         return response.text
 
