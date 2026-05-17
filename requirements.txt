@@ -10,3 +10,4 @@ transformers
 faiss-cpu
 plotly
 huggingface_hub
+google-generativeai
