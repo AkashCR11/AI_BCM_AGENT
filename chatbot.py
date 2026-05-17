@@ -1,19 +1,18 @@
-import requests
+import google.generativeai as genai
+import os
 
 def ask_ai(question):
     try:
-        response = requests.post(
-            "https://api-inference.huggingface.co/models/distilgpt2",
-            json={"inputs": question},
-            timeout=30
-        )
+        # Configure API key
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-        if response.status_code == 200:
-            result = response.json()
-            return result[0]["generated_text"]
+        # Load model
+        model = genai.GenerativeModel("gemini-1.5-flash")
 
-        else:
-            return f"⚠️ API Error: {response.status_code}"
+        # Generate response
+        response = model.generate_content(question)
+
+        return response.text
 
     except Exception as e:
         return f"⚠️ Error: {str(e)}"
