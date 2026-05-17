@@ -2,7 +2,7 @@ import requests
 import os
 
 def ask_ai(question):
-    API_URL = "https://api-inference.huggingface.co/models/microsoft/phi-2"
+    API_URL = "https://api-inference.huggingface.co/models/gpt2"
 
     headers = {
         "Authorization": f"Bearer {os.getenv('HF_API_KEY')}"
@@ -24,7 +24,7 @@ def ask_ai(question):
                 return str(data)
 
         else:
-            return f"⚠️ API Error: {response.status_code}"
+            return f"⚠️ API Error: {response.status_code} - {response.text}"
 
     except Exception as e:
         return f"⚠️ Error: {str(e)}"
