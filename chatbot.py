@@ -16,9 +16,16 @@ def ask_ai(question):
         response = requests.post(API_URL, headers=headers, json=payload)
 
         if response.status_code == 200:
-            return response.json()[0]["generated_text"]
+            data = response.json()
+
+            # ✅ handle different response formats
+            if isinstance(data, list):
+                return data[0].get("generated_text", "No response")
+            else:
+                return str(data)
+
         else:
-            return f"⚠️ Error: {response.text}"
+            return f"⚠️ API Error: {response.status_code} - {response.text}"
 
     except Exception as e:
-        return f"⚠️ Error connecting to AI: {str(e)}"
+        return f"⚠️ Error: {str(e)}"
