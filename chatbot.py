@@ -6,8 +6,8 @@ def ask_ai(question):
         # Configure API key
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-        # Load model
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        # ✅ Use correct model
+        model = genai.GenerativeModel("gemini-1.0-pro")
 
         # Generate response
         response = model.generate_content(question)
