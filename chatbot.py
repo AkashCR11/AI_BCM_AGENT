@@ -1,40 +1,24 @@
+import requests
 import os
-from dotenv import load_dotenv
-from openai import OpenAI
-from prompts import BANKING_SYSTEM_PROMPT
 
-# Load environment variables
-load_dotenv(dotenv_path=".env")
-
-
-def get_openai_client():
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise EnvironmentError(
-            "OPENAI_API_KEY not found. Set it in .env or environment variables."
-        )
-    return OpenAI(api_key=api_key)
-
-
-# ✅ REQUIRED FUNCTION
 def ask_ai(question):
-    if not question or not question.strip():
-        raise ValueError("Please enter a question or prompt before generating an AI response.")
+    API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-large"
 
-    client = get_openai_client()
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {
-                "role": "system",
-                "content": BANKING_SYSTEM_PROMPT
-            },
-            {
-                "role": "user",
-                "content": question
-            }
-        ],
-        temperature=0.7
-    )
+    headers = {
+        "Authorization": f"Bearer {os.getenv('HF_API_KEY')}"
+    }
 
-    return response.choices[0].message.content
+    payload = {
+        "inputs": question
+    }
+
+    try:
+        response = requests.post(API_URL, headers=headers, json=payload)
+
+        if response.status_code == 200:
+            return response.json()[0]["generated_text"]
+        else:
+            return f"⚠️ Error: {response.text}"
+
+    except Exception as e:
+        return f"⚠️ Error connecting to AI: {str(e)}"
