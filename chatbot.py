@@ -3,12 +3,23 @@ import os
 
 def ask_ai(question):
     try:
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        api_key = os.getenv("GEMINI_API_KEY")
 
-        # ✅ Use NEW model name
-        model = genai.GenerativeModel("gemini-3-flash")
+        if not api_key:
+            return "⚠️ Gemini API Key not found in Secrets"
 
-        response = model.generate_content(question)
+        genai.configure(api_key=api_key)
+
+        # ✅ FINAL WORKING MODEL NAME
+        model = genai.GenerativeModel("models/gemini-1.5-flash-latest")
+
+        response = model.generate_content(
+            question,
+            generation_config={
+                "temperature": 0.7,
+                "max_output_tokens": 300
+            }
+        )
 
         return response.text
 
