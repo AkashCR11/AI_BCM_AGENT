@@ -14,7 +14,7 @@ def ask_ai(question):
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a detailed banking assistant. Always complete answers fully with headings and explanations."
+                    "content": "You are a banking expert. Always provide structured, complete answers with headings, bullet points, and explanations."
                 },
                 {
                     "role": "user",
