@@ -1,21 +1,31 @@
-import google.generativeai as genai
+from openai import AzureOpenAI
 import os
 
 def ask_ai(question):
     try:
-        api_key = os.getenv("GEMINI_API_KEY")
+        client = AzureOpenAI(
+            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+            api_version="2024-02-15-preview"
+        )
 
-        if not api_key:
-            return "⚠️ GEMINI_API_KEY missing in secrets"
+        response = client.chat.completions.create(
+            model="gpt-4o",  # ✅ EXACTLY your deployment name
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant for banking and capital markets."
+                },
+                {
+                    "role": "user",
+                    "content": question
+                }
+            ],
+            temperature=0.7,
+            max_tokens=300
+        )
 
-        genai.configure(api_key=api_key)
-
-        # ✅ Use correct modern model alias
-        model = genai.GenerativeModel("gemini-pro")
-
-        response = model.generate_content(question)
-
-        return response.text
+        return response.choices[0].message.content
 
     except Exception as e:
         return f"⚠️ Error: {str(e)}"
