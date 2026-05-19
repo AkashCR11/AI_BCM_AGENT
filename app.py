@@ -52,7 +52,7 @@ if menu == "AI Banking Chatbot":
             with st.spinner("Generating Response..."):
                 answer = ask_ai(question)
                 st.success("AI Response Generated")
-                st.write(answer)
+                st.markdown(answer)
         except Exception as error:
             st.error("Unable to generate AI response.")
             st.exception(error)
