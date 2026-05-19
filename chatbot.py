@@ -22,7 +22,7 @@ def ask_ai(question):
                 }
             ],
             temperature=0.7,
-            max_tokens=800
+            max_tokens=2000
         )
 
         return response.choices[0].message.content
