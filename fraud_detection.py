@@ -1,40 +1,18 @@
 import os
 import pandas as pd
-import streamlit as st
 from sklearn.ensemble import IsolationForest
 
 
 def load_transaction_data():
     path = "data/banking_transactions.csv"
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Data file not found: {path}")
 
-    # ✅ Debug info (very important)
-    st.write("📂 Current directory:", os.getcwd())
-    st.write("📁 Files in root:", os.listdir())
+    data = pd.read_csv(path)
+    if "amount" not in data.columns:
+        raise ValueError("The transaction data file must include an 'amount' column.")
 
-    if os.path.exists("data"):
-        st.write("📁 Files inside data folder:", os.listdir("data"))
-    else:
-        st.write("❌ 'data' folder NOT found")
-
-    st.write("✅ File exists:", os.path.exists(path))
-
-    # ✅ Try loading file
-    try:
-        data = pd.read_csv(path)
-
-        if "amount" not in data.columns:
-            raise ValueError("CSV must contain 'amount' column")
-
-        return data
-
-    except Exception as e:
-        # ✅ Fallback (so app doesn't break)
-        st.error("⚠️ Using fallback sample data")
-
-        return pd.DataFrame({
-            "transaction_id": [1, 2, 3, 4],
-            "amount": [1000, 5000, 200, 10000]
-        })
+    return data
 
 
 def detect_fraud():
