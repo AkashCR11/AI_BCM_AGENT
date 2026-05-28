@@ -14,3 +14,5 @@ google-generativeai
 google-generativeai>=0.7.2
 langchain
 langchain-openai
+faiss-cpu
+PyPDF2
