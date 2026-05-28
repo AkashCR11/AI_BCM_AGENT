@@ -2,60 +2,90 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from chatbot import ask_ai
+from agent import agent_router
 from test_case_generator import generate_test_cases
 from fraud_detection import detect_fraud
 from financial_analysis import analyze_financial_data
-from agent import agent_router
 
+
+# -------------------------------------------
 # PAGE CONFIG
+# -------------------------------------------
 st.set_page_config(
     page_title="AI BCM Agent",
     page_icon="🤖",
     layout="wide"
 )
 
-# TITLE
-st.title("🤖 AI BCM & Capital Market Testing Assistant")
-
-st.markdown("""
-This AI Agent helps with:
-- Banking Queries  
-- AI Test Case Generation  
-- Fraud Detection  
-- Financial Analysis  
-- Capital Market Insights  
-""")
-
-# SIDEBAR MENU
-menu = st.sidebar.selectbox(
-    "Select Module",
-    [
-        "AI Banking Chatbot",
-        "AI Test Case Generator",
-        "Fraud Detection",
-        "Financial Analysis"
-    ]
-)
+st.title("🤖 Agentic AI - Banking & Capital Market Assistant")
+st.caption("Powered by Azure GPT-4o + Agentic AI")
 
 # -------------------------------------------
-# AI CHATBOT
+# MEMORY (ChatGPT style)
 # -------------------------------------------
-if menu == "AI Banking Chatbot":
-    st.header("💬 AI Banking Chatbot")
+if "history" not in st.session_state:
+    st.session_state.history = []
 
-    question = st.text_area(
-        "Ask Banking or Capital Market Questions"
+# -------------------------------------------
+# SIDEBAR
+# -------------------------------------------
+with st.sidebar:
+    st.header("📌 Select Module")
+    menu = st.selectbox(
+        "",
+        [
+            "AI Banking Chatbot",
+            "AI Test Case Generator",
+            "Fraud Detection",
+            "Financial Analysis"
+        ]
     )
 
-    if st.button("Generate AI Response"):
+    st.markdown("---")
+    st.markdown("### ✅ Features")
+    st.markdown("""
+    - GPT‑4o Chatbot  
+    - Agentic AI Routing  
+    - Fraud Detection  
+    - Test Case Generator  
+    - Financial Analytics  
+    """)
+
+# -------------------------------------------
+# AI CHATBOT (AGENTIC + MEMORY)
+# -------------------------------------------
+if menu == "AI Banking Chatbot":
+    st.header("💬 AI Banking Agent")
+
+    # Display history first
+    for role, message in st.session_state.history:
+        with st.chat_message(role):
+            st.markdown(message)
+
+    # Chat input
+    user_input = st.chat_input("Ask banking or capital market questions...")
+
+    if user_input:
+        # Show user message
+        with st.chat_message("user"):
+            st.markdown(user_input)
+
+        # Save user message
+        st.session_state.history.append(("user", user_input))
+
         try:
-            with st.spinner("Generating Response..."):
-                answer = agent_router(question)
-                st.success("AI Response Generated")
-                st.write(answer)
+            with st.spinner("AI Agent thinking..."):
+                response = agent_router(user_input)
+
+            # Show assistant response
+            with st.chat_message("assistant"):
+                st.markdown(response)
+
+            # Save response
+            st.session_state.history.append(("assistant", response))
+
         except Exception as error:
-            st.error("Unable to generate AI response.")
+            st.error("Unable to generate response.")
             st.exception(error)
 
 # -------------------------------------------
@@ -64,21 +94,21 @@ if menu == "AI Banking Chatbot":
 elif menu == "AI Test Case Generator":
     st.header("🧪 AI Test Case Generator")
 
-    module_name = st.text_input(
-        "Enter Banking Module Name"
-    )
+    module_name = st.text_input("Enter Banking Module Name")
 
     if st.button("Generate Test Cases"):
         if not module_name or not module_name.strip():
-            st.warning("Please enter a module name before generating test cases.")
+            st.warning("Please enter a module name.")
         else:
             try:
                 with st.spinner("Generating Test Cases..."):
                     test_cases = generate_test_cases(module_name)
-                    st.success("Test Cases Generated")
-                    st.write(test_cases)
+
+                st.success("Test Cases Generated ✅")
+                st.markdown(test_cases)
+
             except Exception as error:
-                st.error("Unable to generate test cases.")
+                st.error("Error generating test cases.")
                 st.exception(error)
 
 # -------------------------------------------
@@ -89,11 +119,14 @@ elif menu == "Fraud Detection":
 
     if st.button("Run Fraud Detection"):
         try:
-            fraud_data = detect_fraud()
+            with st.spinner("Analyzing transactions..."):
+                fraud_data = detect_fraud()
+
             st.subheader("Suspicious Transactions")
             st.dataframe(fraud_data)
+
         except Exception as error:
-            st.error("Unable to run fraud detection.")
+            st.error("Fraud detection failed.")
             st.exception(error)
 
 # -------------------------------------------
@@ -115,14 +148,18 @@ elif menu == "Financial Analysis":
             st.metric("Average Transaction", analysis['Average Transaction'])
             st.metric("Highest Transaction", analysis['Highest Transaction'])
 
+        # Load data
         data = pd.read_csv("data/banking_transactions.csv")
 
+        # Plot
         fig, ax = plt.subplots(figsize=(10, 5))
         ax.plot(data['transaction_id'], data['amount'])
         ax.set_title("Transaction Amount Analysis")
         ax.set_xlabel("Transaction ID")
         ax.set_ylabel("Amount")
+
         st.pyplot(fig)
+
     except Exception as error:
-        st.error("Unable to load financial analysis data.")
+        st.error("Financial analysis failed.")
         st.exception(error)
