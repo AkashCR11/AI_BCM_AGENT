@@ -6,6 +6,7 @@ from chatbot import ask_ai
 from test_case_generator import generate_test_cases
 from fraud_detection import detect_fraud
 from financial_analysis import analyze_financial_data
+from agent import agent_router
 
 # PAGE CONFIG
 st.set_page_config(
@@ -50,9 +51,9 @@ if menu == "AI Banking Chatbot":
     if st.button("Generate AI Response"):
         try:
             with st.spinner("Generating Response..."):
-                answer = ask_ai(question)
+                answer = agent_router(question)
                 st.success("AI Response Generated")
-                st.markdown(answer)
+                st.write(answer)
         except Exception as error:
             st.error("Unable to generate AI response.")
             st.exception(error)
