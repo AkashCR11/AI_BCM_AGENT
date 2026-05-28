@@ -12,3 +12,5 @@ plotly
 huggingface_hub
 google-generativeai
 google-generativeai>=0.7.2
+langchain
+langchain-openai
