@@ -9,6 +9,9 @@ import os
 def load_pdf(file_path):
     loader = PyPDFLoader(file_path)
     documents = loader.load()
+
+    print("Loaded docs:", len(documents))   # ✅ Debug
+
     return documents
 
 
@@ -24,16 +27,23 @@ def split_documents(documents):
 
 # ✅ STEP 3 — Create vector store
 def create_vectorstore(documents):
+    if not documents:
+        raise ValueError("❌ No documents found to create embeddings")
+
+    from langchain_openai import AzureOpenAIEmbeddings
+    import os
+
     embeddings = AzureOpenAIEmbeddings(
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    deployment="text-embedding-3-small",  # ✅ create this in Azure if not present
-    api_version="2024-02-15-preview"
-)
+        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+        api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+        deployment="text-embedding-3-small",
+        api_version="2024-02-15-preview"
+    )
 
     db = FAISS.from_documents(documents, embeddings)
 
     return db
+
 
 
 # ✅ STEP 4 — Retrieve with scoring + reranking
@@ -75,11 +85,21 @@ Question:
 # ✅ MAIN RAG FUNCTION
 def rag_pipeline(file_path, query):
     docs = load_pdf(file_path)
+
+    if not docs:
+        return "⚠️ PDF is empty or unreadable.", []
+
     chunks = split_documents(docs)
+
+    if not chunks:
+        return "⚠️ No text extracted from PDF.", []
 
     db = create_vectorstore(chunks)
 
     retrieved_docs = retrieve_documents(db, query)
+
+    if not retrieved_docs:
+        return "⚠️ No relevant content found in document.", []
 
     answer = generate_answer(query, retrieved_docs)
 
