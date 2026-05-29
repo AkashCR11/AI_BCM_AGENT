@@ -1,82 +1,78 @@
 from chatbot import ask_ai
 from fraud_detection import detect_fraud
+from rag import rag_pipeline
+
+import os
 
 
 def agent_router(user_query):
     query = user_query.lower()
 
-    # ✅ -------------------------------------
-    # STEP 1 — RULE-BASED OVERRIDE (HIGH PRIORITY)
-    # -------------------------------------
+    # ✅ RULE-BASED DECISION
 
-    if "fraud" in query or "transaction" in query:
+    if "fraud" in query:
         action = "fraud_detection"
 
-    elif "test case" in query or "testing" in query:
+    elif "test case" in query:
         action = "test_case_generation"
 
     elif "analysis" in query or "financial" in query:
         action = "financial_analysis"
 
+    elif "pdf" in query or "document" in query:
+        action = "rag"
+
     else:
-        # ✅ -------------------------------------
-        # STEP 2 — LLM DECISION (ONLY IF UNCLEAR)
-        # -------------------------------------
+        # ✅ LLM fallback decision
         decision_prompt = f"""
-You are an AI agent.
-
-Your task is to classify the user's query into ONE of these actions:
-
-1. fraud_detection
-2. test_case_generation
-3. financial_analysis
-4. general_chat
-
-STRICT RULES:
-- Return ONLY one option
-- Do NOT explain
-- Do NOT add extra words
+Classify the query into:
+fraud_detection, test_case_generation, financial_analysis, rag, general_chat
 
 Query:
 {user_query}
+
+Return ONLY one word.
 """
 
-        decision = ask_ai(decision_prompt).strip().lower()
+        decision = ask_ai(decision_prompt).lower().strip()
 
-        # ✅ -------------------------------------
-        # STEP 3 — NORMALIZE OUTPUT (IMPORTANT)
-        # -------------------------------------
         if "fraud" in decision:
             action = "fraud_detection"
-
         elif "test" in decision:
             action = "test_case_generation"
-
-        elif "analysis" in decision or "finance" in decision:
+        elif "analysis" in decision:
             action = "financial_analysis"
-
+        elif "rag" in decision or "document" in decision:
+            action = "rag"
         else:
             action = "general_chat"
 
-    # ✅ -------------------------------------
-    # STEP 4 — EXECUTE ACTION
-    # -------------------------------------
+    # ✅ EXECUTE ACTION
 
     if action == "fraud_detection":
         fraud_data = detect_fraud()
 
-        # ✅ Multi-step improvement: Explain result using GPT
         summary = ask_ai(
-            f"Analyze the following fraud detection results and provide insights:\n{fraud_data.to_string()}"
+            f"Analyze this fraud data:\n{fraud_data.to_string()}"
         )
 
-        return f"🚨 Fraud Detection Results:\n\n{fraud_data.to_string()}\n\n📊 Insights:\n{summary}"
+        return f"🚨 Fraud Results:\n\n{fraud_data.to_string()}\n\n📊 Insights:\n{summary}"
 
     elif action == "test_case_generation":
         return ask_ai(f"Generate detailed test cases for: {user_query}")
 
     elif action == "financial_analysis":
         return ask_ai(f"Provide financial analysis for: {user_query}")
+
+    elif action == "rag":
+        file_path = "temp.pdf"   # ✅ uploaded file
+
+        if not os.path.exists(file_path):
+            return "⚠️ Please upload a PDF document first."
+
+        answer, docs = rag_pipeline(file_path, user_query)
+
+        return f"📄 RAG Answer:\n\n{answer}"
 
     else:
         return ask_ai(user_query)
