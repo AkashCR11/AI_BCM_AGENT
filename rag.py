@@ -1,9 +1,9 @@
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
+from langchain_openai import AzureOpenAIEmbeddings
 from chatbot import ask_ai
-
+import os
 
 # ✅ STEP 1 — Load PDF
 def load_pdf(file_path):
@@ -24,7 +24,12 @@ def split_documents(documents):
 
 # ✅ STEP 3 — Create vector store
 def create_vectorstore(documents):
-    embeddings = OpenAIEmbeddings()
+    embeddings = AzureOpenAIEmbeddings(
+    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+    deployment="text-embedding-3-small",  # ✅ create this in Azure if not present
+    api_version="2024-02-15-preview"
+)
 
     db = FAISS.from_documents(documents, embeddings)
 
