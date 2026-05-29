@@ -49,13 +49,23 @@ with st.sidebar:
     - Fraud Detection  
     - Test Case Generator  
     - Financial Analytics  
+    - PDF RAG Support ✅
     """)
 
 # -------------------------------------------
-# AI CHATBOT (AGENTIC + MEMORY)
+# AI CHATBOT (AGENTIC + MEMORY + RAG)
 # -------------------------------------------
 if menu == "AI Banking Chatbot":
     st.header("💬 AI Banking Agent")
+
+    # ✅ PDF Upload (RAG)
+    uploaded_file = st.file_uploader("📄 Upload PDF for AI Analysis", type="pdf")
+
+    if uploaded_file:
+        with open("temp.pdf", "wb") as f:
+            f.write(uploaded_file.read())
+
+        st.success("✅ PDF uploaded successfully. You can now ask questions about it!")
 
     # Display history first
     for role, message in st.session_state.history:
