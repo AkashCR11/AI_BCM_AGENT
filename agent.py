@@ -65,14 +65,15 @@ Return ONLY one word.
         return ask_ai(f"Provide financial analysis for: {user_query}")
 
     elif action == "rag":
-        file_path = "temp.pdf"   # ✅ uploaded file
+    file_path = "temp.pdf"
 
-        if not os.path.exists(file_path):
-            return "⚠️ Please upload a PDF document first."
+    if not os.path.exists(file_path):
+        return "⚠️ Please upload a PDF first."
 
-        answer, docs = rag_pipeline(file_path, user_query)
+    result = rag_pipeline(file_path, user_query)
 
-        return f"📄 RAG Answer:\n\n{answer}"
-
+    if isinstance(result, tuple):
+        answer, docs = result
+        return f"📄 Answer:\n\n{answer}"
     else:
-        return ask_ai(user_query)
+        return result
