@@ -6,7 +6,6 @@ numpy
 scikit-learn
 matplotlib
 python-dotenv
-transformers
 faiss-cpu
 plotly
 huggingface_hub
