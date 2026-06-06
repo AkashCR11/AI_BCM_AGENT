@@ -1,4 +1,7 @@
-import streamlit as stimport streamlit asfrom database import (
+import streamlit as st
+from agent import agent_router
+
+from database import (
     init_db,
     seed_data,
     get_products,
