@@ -94,14 +94,17 @@ Return ONLY one word.
     elif action == "rag":
         file_path = "temp.pdf"
 
+        # ✅ Check uploaded file
+        if "file_path" in st.session_state:
+            file_path = st.session_state.file_path
+    
         if not os.path.exists(file_path):
-            return "⚠️ Please upload a PDF first."
+            return "⚠️ Upload a file first."
 
-        result = rag_pipeline(file_path, user_query)
+        answer, docs = rag_pipeline(file_path, user_query)
 
-        if isinstance(result, tuple):
-            answer, docs = result
-            return f"""
+        return f"📄 Answer:\n\n{answer}"
+        
 ### 📄 Document-Based Answer
 
 {answer}
