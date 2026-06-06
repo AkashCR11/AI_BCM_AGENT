@@ -1,141 +1,123 @@
 import streamlit as st
 from bcm_data import products, modules
 from agent import agent_router
-import networkx as nx
-import matplotlib.pyplot as plt
 
-# ----------------------------------
+# -----------------------------------
 # PAGE CONFIG
-# ----------------------------------
-st.set_page_config(page_title="BCM AI", layout="wide")
+# -----------------------------------
+st.set_page_config(page_title="BCM AI Repo", layout="wide")
 
-# ----------------------------------
-# DARK THEME (EY STYLE)
-# ----------------------------------
+# -----------------------------------
+# MODERN CSS (ENTERPRISE LOOK)
+# -----------------------------------
 st.markdown("""
 <style>
-body {
-    background-color: #0E1117;
-    color: white;
+.main-title {
+    text-align: center;
+    font-size: 36px;
+    font-weight: bold;
+    padding: 15px;
+    color: #0A2F5A;
 }
 
-h1, h2, h3 {
-    color: #4B8BBE;
+.card {
+    padding: 15px;
+    border-radius: 12px;
+    background-color: #f8f9fa;
+    box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: 0.3s;
 }
 
-.stButton button {
-    background-color: #1E1E1E;
-    color: white;
-    border-radius: 10px;
-    padding: 10px;
-    width: 100%;
+.card:hover {
+    background-color: #e6f0ff;
+    transform: scale(1.03);
 }
 
-.stButton button:hover {
-    background-color: #4B8BBE;
+.section-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 10px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------------------------
+# -----------------------------------
 # HEADER
-# ----------------------------------
-st.markdown("<h1 style='text-align:center;'>🌙 BCM AI REPO</h1>", unsafe_allow_html=True)
+# -----------------------------------
+st.markdown("<div class='main-title'>🏦 BCM AI REPO</div>", unsafe_allow_html=True)
 
-# ----------------------------------
-# 🔍 SEARCH BAR
-# ----------------------------------
-search = st.text_input("🔍 Search Products / Modules")
-
-# ----------------------------------
-# FILTER DATA
-# ----------------------------------
-filtered_products = [
-    p for p in products if search.lower() in p.lower()
-] if search else list(products.keys())
-
-filtered_modules = [
-    m for m in modules if search.lower() in m.lower()
-] if search else list(modules.keys())
-
-# ----------------------------------
-# CARD GRID FUNCTION
-# ----------------------------------
-def show_cards(items, key_prefix):
-    cols = st.columns(4)
-
-    for i, item in enumerate(items):
-        with cols[i % 4]:
-            if st.button(item, key=f"{key_prefix}_{item}"):
-                st.session_state.selected = item
-
-# ----------------------------------
-# PRODUCTS GRID
-# ----------------------------------
-st.subheader("📦 Products")
-show_cards(filtered_products, "product")
-
-# ----------------------------------
-# MODULES GRID
-# ----------------------------------
-st.subheader("🧩 Modules")
-show_cards(filtered_modules, "module")
-
-# ----------------------------------
-# POPUP PANEL (DETAIL VIEW)
-# ----------------------------------
 st.markdown("---")
 
-if "selected" in st.session_state:
-    name = st.session_state.selected
+# -----------------------------------
+# LAYOUT
+# -----------------------------------
+col1, col2 = st.columns(2)
 
-    if name in products:
-        data = products[name]
+# -----------------------------------
+# PRODUCTS CARDS
+# -----------------------------------
+with col1:
+    st.markdown("<div class='section-title'>📦 Products</div>", unsafe_allow_html=True)
 
-        st.markdown(f"### ✅ Product: {name}")
+    for product in products:
+        if st.button(product, key=f"product_{product}"):
+            st.session_state.selected_product = product
+
+# -----------------------------------
+# MODULES CARDS
+# -----------------------------------
+with col2:
+    st.markdown("<div class='section-title'>🧩 Modules</div>", unsafe_allow_html=True)
+
+    for module in modules:
+        if st.button(module, key=f"module_{module}"):
+            st.session_state.selected_module = module
+
+# -----------------------------------
+# DISPLAY DETAILS (CENTER PANEL)
+# -----------------------------------
+st.markdown("---")
+
+col3, col4 = st.columns(2)
+
+# ---------------- PRODUCT DETAILS
+with col3:
+    if "selected_product" in st.session_state:
+        p = st.session_state.selected_product
+        data = products[p]
+
+        st.markdown(f"### ✅ {p}")
         st.write(data["description"])
 
-        st.markdown(f"🔗 {data['repo_link']}")
+        st.markdown(f"{data['repo_link']}")
 
-        st.write("### Modules")
+        st.markdown("#### 📦 Modules")
         for m in data["modules"]:
-            st.write(f"➡️ {m}")
+            st.markdown(f"- 🔗 {m}")
 
-    elif name in modules:
-        data = modules[name]
+# ---------------- MODULE DETAILS
+with col4:
+    if "selected_module" in st.session_state:
+        m = st.session_state.selected_module
+        data = modules[m]
 
-        st.markdown(f"### ✅ Module: {name}")
+        st.markdown(f"### ✅ {m}")
         st.write(data["description"])
 
-        st.write("### Used in Products")
+        st.markdown("#### 🏦 Used in Products")
         for p in data["products"]:
-            st.write(f"➡️ {p}")
+            st.markdown(f"- 🔗 {p}")
 
-# ----------------------------------
-# GRAPH VISUALIZATION
-# ----------------------------------
+# -----------------------------------
+# CHAT AREA (BOTTOM)
+# -----------------------------------
 st.markdown("---")
-st.subheader("📊 Product ↔ Module Graph")
+st.markdown("### 💬 Ask Anything")
 
-G = nx.Graph()
-
-# Add edges
-for p, pdata in products.items():
-    for m in pdata["modules"]:
-        G.add_edge(p, m)
-
-fig, ax = plt.subplots()
-nx.draw(G, with_labels=True, node_color="skyblue", node_size=2000, ax=ax)
-
-st.pyplot(fig)
-
-# ----------------------------------
-# CHATBOT
-# ----------------------------------
-st.markdown("---")
-st.subheader("💬 AI Assistant")
-
-user_input = st.chat_input("Ask anything...")
+user_input = st.chat_input("Ask about products, modules, or banking concepts...")
 
 if user_input:
     with st.spinner("Thinking..."):
