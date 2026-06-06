@@ -18,3 +18,4 @@ PyPDF2
 langchain-community
 pypdf
 langchain-text-splitters
+networkx
