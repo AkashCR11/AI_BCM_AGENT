@@ -1,30 +1,32 @@
-import streamlit as st
-from database import (
+import streamlit as stimport streamlit asfrom database import (
     init_db,
     seed_data,
-   )    get_products,
+    get_products,
     get_modules,
     get_product_modules,
     get_module_products,
     get_connection
+)
 
+# -----------------------------------
+# INIT DATABASE
 # -----------------------------------
 init_db()
 seed_data()
 
 # -----------------------------------
-# ✅ PAGE CONFIG
+# PAGE CONFIG
 # -----------------------------------
 st.set_page_config(page_title="BCM AI Repo", layout="wide")
 
 # -----------------------------------
-# ✅ SESSION INIT
+# SESSION INIT
 # -----------------------------------
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 # -----------------------------------
-# ✅ SIDEBAR NAVIGATION ✅✅✅
+# SIDEBAR NAVIGATION
 # -----------------------------------
 st.sidebar.title("Navigation")
 
@@ -34,84 +36,80 @@ menu = st.sidebar.radio(
 )
 
 # =========================================================
-# ✅ DASHBOARD
+# DASHBOARD
 # =========================================================
 if menu == "Dashboard":
 
-    # ✅ FETCH DATA (ALWAYS REFRESH)
+    # FETCH DATA
     product_data = get_products()
     module_data = get_modules()
 
     products = [p[0] for p in product_data]
     modules = [m[0] for m in module_data]
 
-    # -----------------------------------
-    # ✅ HEADER
-    # -----------------------------------
-    st.markdown("<h1 style='text-align:center;'>🏦 BCM AI REPO</h1>", unsafe_allow_html=True)
+    # HEADER
+    st.markdown("<h1 style='text-align:center;'>BCM AI REPO</h1>", unsafe_allow_html=True)
     st.markdown("---")
 
-    # -----------------------------------
-    # ✅ PRODUCTS + MODULES
-    # -----------------------------------
     col1, col2 = st.columns(2)
 
-    # ✅ PRODUCTS
+    # PRODUCTS
     with col1:
-        st.subheader("📦 Products")
+        st.subheader("Products")
 
         for product in sorted(products):
             if st.button(product, key=f"product_{product}"):
                 st.session_state.selected_product = product
 
-    # ✅ MODULES (FIXED)
+    # MODULES
     with col2:
-        st.subheader("🧩 Modules")
+        st.subheader("Modules")
 
         for module in sorted(modules):
             if st.button(module, key=f"module_{module}"):
                 st.session_state.selected_module = module
 
     # -----------------------------------
-    # ✅ DETAILS
+    # DETAILS
     # -----------------------------------
     st.markdown("---")
+
     col3, col4 = st.columns(2)
 
-    # ✅ PRODUCT DETAILS
+    # PRODUCT DETAILS
     with col3:
         if "selected_product" in st.session_state:
             p = st.session_state.selected_product
             info = next(x for x in product_data if x[0] == p)
 
-            st.markdown(f"### ✅ {p}")
+            st.markdown(f"### {p}")
             st.write(info[1])
-            st.markdown(f"🔗 {info[2]}")
+            st.write(info[2])
 
-            st.markdown("#### 📦 Modules")
+            st.markdown("Modules:")
             for m in get_product_modules(p):
                 st.write(f"➡️ {m}")
 
-    # ✅ MODULE DETAILS
+    # MODULE DETAILS
     with col4:
         if "selected_module" in st.session_state:
             m = st.session_state.selected_module
             info = next(x for x in module_data if x[0] == m)
 
-            st.markdown(f"### ✅ {m}")
+            st.markdown(f"### {m}")
             st.write(info[1])
 
-            st.markdown("#### 🏦 Used in Products")
+            st.markdown("Used in Products:")
             for p in get_module_products(m):
                 st.write(f"➡️ {p}")
 
     # -----------------------------------
-    # ✅ FILE UPLOAD
+    # FILE UPLOAD
     # -----------------------------------
     st.markdown("---")
-    st.subheader("📂 Upload Document")
+    st.subheader("Upload Document")
 
-    uploaded_file = st.file_uploader("Upload PDF/Excel", type=["pdf", "xlsx"])
+    uploaded_file = st.file_uploader("Upload PDF or Excel", type=["pdf", "xlsx"])
 
     if uploaded_file:
         file_path = f"temp.{uploaded_file.name.split('.')[-1]}"
@@ -119,22 +117,20 @@ if menu == "Dashboard":
         with open(file_path, "wb") as f:
             f.write(uploaded_file.read())
 
-        st.success("✅ File uploaded")
+        st.success("File uploaded")
         st.session_state.file_path = file_path
 
     # -----------------------------------
-    # ✅ CHAT (COPILOT STYLE)
+    # CHAT
     # -----------------------------------
     st.markdown("---")
-    st.subheader("💬 Ask Anything")
+    st.subheader("Ask Anything")
 
-    # ✅ DISPLAY CHAT HISTORY
     for msg in st.session_state.chat_history:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    # ✅ INPUT
-    user_input = st.chat_input("Ask about products, modules...")
+    user_input = st.chat_input("Ask about products or modules...")
 
     if user_input:
         st.session_state.chat_history.append({
@@ -156,41 +152,36 @@ if menu == "Dashboard":
         })
 
     # -----------------------------------
-    # ✅ DOWNLOAD REPORT ✅✅✅
+    # DOWNLOAD REPORT
     # -----------------------------------
-    st.markdown("---")
-
-    if st.button("📥 Download Chat Report"):
+    if st.button("Download Chat Report"):
         report = ""
 
         for msg in st.session_state.chat_history:
-            role = msg["role"].upper()
-            report += f"{role}:\n{msg['content']}\n\n"
+            report += f"{msg['role']}:\n{msg['content']}\n\n"
 
         st.download_button(
-            label="Download",
+            "Download",
             data=report,
             file_name="chat_report.txt"
         )
 
-    # -----------------------------------
-    # ✅ CLEAR CHAT
-    # -----------------------------------
-    if st.button("🗑️ Clear Chat"):
+    # CLEAR CHAT
+    if st.button("Clear Chat"):
         st.session_state.chat_history = []
 
 # =========================================================
-# ✅ ADMIN PANEL ✅✅✅
+# ADMIN PANEL
 # =========================================================
 elif menu == "Admin Panel":
 
-    st.title("⚙️ Admin Panel")
+    st.title("Admin Panel")
 
     conn = get_connection()
     cur = conn.cursor()
 
-    # ✅ ADD PRODUCT
-    st.subheader("➕ Add Product")
+    # ADD PRODUCT
+    st.subheader("Add Product")
 
     p_name = st.text_input("Product Name")
     p_desc = st.text_area("Description")
@@ -202,11 +193,11 @@ elif menu == "Admin Panel":
             (p_name, p_desc, p_repo)
         )
         conn.commit()
-        st.success("✅ Product added")
-        st.experimental_rerun()
+        st.success("Product added")
+        st.rerun()
 
-    # ✅ ADD MODULE
-    st.subheader("➕ Add Module")
+    # ADD MODULE
+    st.subheader("Add Module")
 
     m_name = st.text_input("Module Name")
     m_desc = st.text_area("Module Description")
@@ -217,17 +208,17 @@ elif menu == "Admin Panel":
             (m_name, m_desc)
         )
         conn.commit()
-        st.success("✅ Module added")
-        st.experimental_rerun()
+        st.success("Module added")
+        st.rerun()
 
-    # ✅ MAP PRODUCT ↔ MODULE
-    st.subheader("🔗 Map Product ↔ Module")
+    # MAPPING
+    st.subheader("Map Product ↔ Module")
 
-    products_list = [p[0] for p in get_products()]
-    modules_list = [m[0] for m in get_modules()]
+    product_list = [p[0] for p in get_products()]
+    module_list = [m[0] for m in get_modules()]
 
-    selected_product = st.selectbox("Select Product", products_list)
-    selected_module = st.selectbox("Select Module", modules_list)
+    selected_product = st.selectbox("Select Product", product_list)
+    selected_module = st.selectbox("Select Module", module_list)
 
     if st.button("Create Mapping"):
         cur.execute(
@@ -235,11 +226,7 @@ elif menu == "Admin Panel":
             (selected_product, selected_module)
         )
         conn.commit()
-        st.success("✅ Mapping created")
-        st.experimental_rerun()
-    get_product_modules, get_module_products,
-    get_connection
-)
+        st.success("Mapping created")
+        st.rerun()
 from agent import agent_router
 
-# -----------------------------------
