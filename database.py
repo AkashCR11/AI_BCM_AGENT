@@ -10,7 +10,7 @@ def init_db():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Products table
+    # ✅ Products table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS products (
         name TEXT PRIMARY KEY,
@@ -19,7 +19,7 @@ def init_db():
     )
     """)
 
-    # Modules table
+    # ✅ Modules table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS modules (
         name TEXT PRIMARY KEY,
@@ -27,23 +27,24 @@ def init_db():
     )
     """)
 
-    # Mapping table
+    # ✅ Mapping table (FIXED with PRIMARY KEY)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS product_module (
         product TEXT,
-        module TEXT
+        module TEXT,
+        PRIMARY KEY (product, module)
     )
     """)
 
     conn.commit()
 
 
-# ✅ STEP 2 — Seed (Initial Data)
+# ✅ STEP 2 — Seed Data (SAFE INSERT)
 def seed_data():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Products
+    # ✅ Products
     products = [
         ("FIS Finnacle", "Core banking system", "https://example.com/finnacle"),
         ("FlexCube", "Universal banking solution", "https://example.com/flexcube"),
@@ -54,7 +55,7 @@ def seed_data():
         "INSERT OR IGNORE INTO products VALUES (?, ?, ?)", products
     )
 
-    # Modules
+    # ✅ Modules
     modules = [
         ("Deposits", "Handles savings accounts"),
         ("Loans", "Loan lifecycle"),
@@ -69,7 +70,7 @@ def seed_data():
         "INSERT OR IGNORE INTO modules VALUES (?, ?)", modules
     )
 
-    # Mapping
+    # ✅ Mapping (NO duplicates will be inserted)
     mapping = [
         ("FIS Finnacle", "Deposits"),
         ("FIS Finnacle", "Loans"),
@@ -88,37 +89,60 @@ def seed_data():
     conn.commit()
 
 
-# ✅ STEP 3 — Fetch Functions
+# ✅ OPTIONAL — CLEAN EXISTING DUPLICATES (RUN ONCE)
+def remove_duplicates():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    DELETE FROM product_module
+    WHERE rowid NOT IN (
+        SELECT MIN(rowid)
+        FROM product_module
+        GROUP BY product, module
+    )
+    """)
+
+    conn.commit()
+
+
+# ✅ STEP 3 — FETCH FUNCTIONS
 
 def get_products():
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM products")
+    cursor.execute("SELECT * FROM products ORDER BY name")
     return cursor.fetchall()
 
 
 def get_modules():
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM modules")
+    cursor.execute("SELECT * FROM modules ORDER BY name")
     return cursor.fetchall()
 
 
 def get_product_modules(product):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT module FROM product_module WHERE product=?",
-        (product,)
-    )
+
+    cursor.execute("""
+    SELECT DISTINCT module
+    FROM product_module
+    WHERE product=?
+    """, (product,))
+
     return [row[0] for row in cursor.fetchall()]
 
 
 def get_module_products(module):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT product FROM product_module WHERE module=?",
-        (module,)
-    )
+
+    cursor.execute("""
+    SELECT DISTINCT product
+    FROM product_module
+    WHERE module=?
+    """, (module,))
+
     return [row[0] for row in cursor.fetchall()]
