@@ -66,11 +66,29 @@ def agent_router(user_query):
 
     # ✅ If repo alone is enough
     if repo_response:
-        memory.append({
-            "role": "assistant",
-            "content": repo_response
-        })
-        return repo_response
+
+    # if any(word in query for word in ["what", "explain", "describe"]):    # ✅ Decide if explanation needed
+
+        explanation = ask_ai(
+            "Explain this in simple and clear way:\n\n" + repo_response
+        )
+
+        response = (
+            repo_response
+            + "\n\n### 🤖 AI Explanation\n"
+            + explanation
+        )
+
+    else:
+        response = repo_response
+
+    memory.append({
+        "role": "assistant",
+        "content": response
+    })
+
+    return response
+
 
     # ✅ -------------------------------
     # STEP 3 — RULE-BASED DECISION
