@@ -1,5 +1,6 @@
 import streamlit as st
 from agent import agent_router
+import auth
 
 from database import (
     init_db,
@@ -10,7 +11,17 @@ from database import (
     get_module_products,
     get_connection
 )
+# -----------------------------------
+# ✅ AUTH SESSION
+# -----------------------------------
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
+# ✅ SHOW LOGIN PAGE
+if not st.session_state.logged_in:
+    auth.login()
+    st.stop()
+    
 # -----------------------------------
 # INIT DATABASE
 # -----------------------------------
@@ -37,6 +48,7 @@ menu = st.sidebar.radio(
     "Go to",
     ["Dashboard", "Admin Panel"]
 )
+auth.logout()
 
 # =========================================================
 # DASHBOARD
