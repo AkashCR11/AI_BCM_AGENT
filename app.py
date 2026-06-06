@@ -136,6 +136,23 @@ with col4:
         for p in product_list:
             st.markdown(f"- 🔗 {p}")
 
+st.markdown("### 📂 Upload Document")
+
+uploaded_file = st.file_uploader(
+    "Upload PDF / Excel",
+    type=["pdf", "xlsx"]
+)
+
+if uploaded_file:
+    file_path = "temp." + uploaded_file.name.split(".")[-1]
+
+    with open(file_path, "wb") as f:
+        f.write(uploaded_file.read())
+
+    st.success("✅ File Uploaded")
+
+    st.session_state.file_path = file_path
+    
 # -----------------------------------
 # CHAT AREA
 # -----------------------------------
