@@ -1,7 +1,7 @@
 import streamlit as st
 from database import (
     init_db, seed_data,
-    get_products, ✅ INIT DATABASE    get_products, get_modules,
+    get_products, INIT DATABASE    get_products, get_modules,
 # -----------------------------------
 init_db()
 seed_data()
