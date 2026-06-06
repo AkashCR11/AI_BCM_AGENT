@@ -1,6 +1,7 @@
 from chatbot import ask_ai
 from fraud_detection import detect_fraud
 from rag import rag_pipeline
+from repo_agent import repo_agent
 
 import os
 
@@ -8,8 +9,18 @@ import os
 def agent_router(user_query):
     query = user_query.lower()
 
-    # ✅ RULE-BASED DECISION
+    # ✅ -------------------------------------
+    # STEP 1 — REPO KNOWLEDGE (HIGHEST PRIORITY)
+    # -------------------------------------
+    repo_response = repo_agent(user_query)
 
+    if repo_response:
+        return repo_response
+
+
+    # ✅ -------------------------------------
+    # STEP 2 — RULE-BASED DECISION
+    # -------------------------------------
     if "fraud" in query:
         action = "fraud_detection"
 
@@ -23,7 +34,9 @@ def agent_router(user_query):
         action = "rag"
 
     else:
-        # ✅ LLM fallback decision
+        # ✅ -------------------------------------
+        # STEP 3 — LLM DECISION (FALLBACK)
+        # -------------------------------------
         decision_prompt = f"""
 Classify the query into:
 fraud_detection, test_case_generation, financial_analysis, rag, general_chat
@@ -47,7 +60,10 @@ Return ONLY one word.
         else:
             action = "general_chat"
 
-    # ✅ EXECUTE ACTION
+
+    # ✅ -------------------------------------
+    # STEP 4 — EXECUTE ACTION
+    # -------------------------------------
 
     if action == "fraud_detection":
         fraud_data = detect_fraud()
@@ -56,7 +72,14 @@ Return ONLY one word.
             f"Analyze this fraud data:\n{fraud_data.to_string()}"
         )
 
-        return f"🚨 Fraud Results:\n\n{fraud_data.to_string()}\n\n📊 Insights:\n{summary}"
+        return f"""
+### 🚨 Fraud Detection Results
+
+{fraud_data.to_string()}
+
+### 📊 Insights
+{summary}
+"""
 
     elif action == "test_case_generation":
         return ask_ai(f"Generate detailed test cases for: {user_query}")
@@ -74,6 +97,13 @@ Return ONLY one word.
 
         if isinstance(result, tuple):
             answer, docs = result
-            return f"📄 Answer:\n\n{answer}"
+            return f"""
+### 📄 Document-Based Answer
+
+{answer}
+"""
         else:
             return result
+
+    else:
+        return ask_ai(user_query)
