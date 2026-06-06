@@ -2,6 +2,7 @@ from chatbot import ask_ai
 from fraud_detection import detect_fraud
 from rag import rag_pipeline
 from repo_agent import repo_agent
+from file_processor import process_excel
 
 import os
 
@@ -32,6 +33,9 @@ def agent_router(user_query):
 
     elif "pdf" in query or "document" in query:
         action = "rag"
+
+    elif "excel" in query:
+        return "📊 Excel processing available in upload section."
 
     else:
         # ✅ -------------------------------------
