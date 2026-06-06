@@ -6,10 +6,11 @@ from fraud_detection import detect_fraud
 from rag import rag_pipeline
 from repo_agent import repo_agent
 from file_processor import process_excel
+from database import get_product_modules
 
 
 # ✅ -------------------------------
-# MEMORY INITIALIZATION (SAFE)
+# MEMORY INIT
 # ✅ -------------------------------
 if "memory" not in st.session_state:
     st.session_state["memory"] = []
@@ -18,27 +19,52 @@ if "memory" not in st.session_state:
 def agent_router(user_query):
     query = user_query.lower()
 
-    # ✅ SAFELY GET MEMORY
+    # ✅ SAFE MEMORY ACCESS
     if "memory" not in st.session_state:
         st.session_state["memory"] = []
 
     memory = st.session_state["memory"]
 
-    # ✅ STORE USER QUERY
-    memory.append({
-        "role": "user",
-        "content": user_query
-    })
+    # ✅ STORE USER INPUT
+    memory.append({"role": "user", "content": user_query})
 
-    # ✅ -------------------------------
-    # STEP 1 — REPO KNOWLEDGE
-    # ✅ -------------------------------
+    # ------------------------------------------
+    # ✅ COMPARISON FEATURE
+    # ------------------------------------------
+    products_list = ["flexcube", "finnacle", "q2"]
+
+    if "compare" in query:
+        matched = [p for p in products_list if p in query]
+
+        if len(matched) >= 2:
+            p1, p2 = matched[:2]
+
+            comparison_prompt = f"""
+Compare the following banking products:
+
+Product 1: {p1}
+Product 2: {p2}
+
+Compare based on:
+- Features
+- Use cases
+- Strengths
+
+Provide structured output.
+"""
+            response = ask_ai(comparison_prompt)
+
+            memory.append({"role": "assistant", "content": response})
+            return response
+
+    # ------------------------------------------
+    # ✅ REPO RESPONSE
+    # ------------------------------------------
     repo_response = repo_agent(user_query)
 
-    # ✅ -------------------------------
-    # STEP 2 — MULTI-TOOL CHAINING
-    # (Repo + Document)
-    # ✅ -------------------------------
+    # ------------------------------------------
+    # ✅ MULTI-TOOL: REPO + RAG
+    # ------------------------------------------
     if ("pdf" in query or "document" in query) and repo_response:
 
         file_path = st.session_state.get("file_path", "temp.pdf")
@@ -57,42 +83,56 @@ def agent_router(user_query):
             "📄 Document Insight:\n" + rag_answer
         )
 
-        memory.append({
-            "role": "assistant",
-            "content": response
-        })
-
+        memory.append({"role": "assistant", "content": response})
         return response
 
-    # ✅ If repo alone is enough
+    # ------------------------------------------
+    # ✅ REPO + LLM EXPLANATION + RECOMMENDATION
+    # ------------------------------------------
     if repo_response:
 
-    # if any(word in query for word in ["what", "explain", "describe"]):    # ✅ Decide if explanation needed
+        # ✅ Recommendation
+        recommendations = ""
+        try:
+            products = ["FIS Finnacle", "FlexCube", "Q2"]
+            for p in products:
+                if p.lower() in query:
+                    modules = get_product_modules(p)
+                    if modules:
+                        recommendations = "\n\n### 🔍 You may also explore:\n"
+                        for m in modules[:2]:
+                            recommendations += f"➡️ {m}\n"
+        except:
+            pass
 
-        explanation = ask_ai(
-            "Explain this in simple and clear way:\n\n" + repo_response
-        )
+        # ✅ Tone control
+        tone = ""
+        if "beginner" in query:
+            tone = "Explain in simple beginner-friendly way."
+        elif "expert" in query:
+            tone = "Explain in deep technical expert-level details."
 
-        response = (
-            repo_response
-            + "\n\n### 🤖 AI Explanation\n"
-            + explanation
-        )
+        # ✅ LLM explanation
+        if any(word in query for word in ["what", "explain", "describe"]):
+            explanation = ask_ai(
+                f"{tone}\n\nExplain this clearly:\n\n{repo_response}"
+            )
 
-    else:
-        response = repo_response
+            response = (
+                repo_response
+                + "\n\n### 🤖 AI Explanation\n"
+                + explanation
+                + recommendations
+            )
+        else:
+            response = repo_response + recommendations
 
-    memory.append({
-        "role": "assistant",
-        "content": response
-    })
+        memory.append({"role": "assistant", "content": response})
+        return response
 
-    return response
-
-
-    # ✅ -------------------------------
-    # STEP 3 — RULE-BASED DECISION
-    # ✅ -------------------------------
+    # ------------------------------------------
+    # ✅ RULE BASED
+    # ------------------------------------------
     if "fraud" in query:
         action = "fraud_detection"
 
@@ -111,39 +151,34 @@ def agent_router(user_query):
 
             if file_path and file_path.endswith(".xlsx"):
                 excel_data = process_excel(file_path)
-
-                response = "📊 Excel Data Preview:\n\n" + excel_data
+                response = "📊 Excel Preview\n\n" + excel_data
             else:
-                response = "⚠️ Please upload an Excel file."
+                response = "⚠️ Upload valid Excel file"
 
-        except Exception:
-            response = "⚠️ Error processing Excel file."
+        except:
+            response = "⚠️ Excel processing failed"
 
-        memory.append({
-            "role": "assistant",
-            "content": response
-        })
-
+        memory.append({"role": "assistant", "content": response})
         return response
 
     else:
-        # ✅ -------------------------------
-        # STEP 4 — LLM DECISION WITH MEMORY
-        # ✅ -------------------------------
+        # ------------------------------------------
+        # ✅ LLM DECISION WITH MEMORY
+        # ------------------------------------------
         decision_prompt = (
-            "You are an intelligent AI agent.\n\n"
-            "Available actions:\n"
+            "You are an AI agent.\n\n"
+            "Actions:\n"
             "- fraud_detection\n"
             "- test_case_generation\n"
             "- financial_analysis\n"
             "- rag\n"
             "- general_chat\n\n"
-            f"Conversation history:\n{memory}\n\n"
+            f"Conversation:\n{memory}\n\n"
             f"Query: {user_query}\n\n"
-            "Return ONLY one action."
+            "Return one action."
         )
 
-        decision = ask_ai(decision_prompt).lower().strip()
+        decision = ask_ai(decision_prompt).lower()
 
         if "fraud" in decision:
             action = "fraud_detection"
@@ -156,10 +191,9 @@ def agent_router(user_query):
         else:
             action = "general_chat"
 
-    # ✅ -------------------------------
-    # STEP 5 — EXECUTE ACTION
-    # ✅ -------------------------------
-
+    # ------------------------------------------
+    # ✅ EXECUTION
+    # ------------------------------------------
     if action == "fraud_detection":
         fraud_data = detect_fraud()
 
@@ -168,41 +202,34 @@ def agent_router(user_query):
         )
 
         response = (
-            "🚨 Fraud Detection Results\n\n"
+            "🚨 Fraud Results\n\n"
             + fraud_data.to_string()
             + "\n\n📊 Insights:\n"
             + summary
         )
 
     elif action == "test_case_generation":
-        response = ask_ai(
-            "Generate detailed test cases for: " + user_query
-        )
+        response = ask_ai("Generate test cases:\n" + user_query)
 
     elif action == "financial_analysis":
-        response = ask_ai(
-            "Provide financial analysis for: " + user_query
-        )
+        response = ask_ai("Provide financial analysis:\n" + user_query)
 
     elif action == "rag":
         file_path = st.session_state.get("file_path", "temp.pdf")
 
         if not os.path.exists(file_path):
-            response = "⚠️ Please upload a document first."
+            response = "⚠️ Upload document first"
         else:
             try:
                 answer, _ = rag_pipeline(file_path, user_query)
-                response = "📄 Document-Based Answer\n\n" + answer
-            except Exception:
-                response = "⚠️ Error processing document."
+                response = "📄 Document Answer\n\n" + answer
+            except:
+                response = "⚠️ Document processing failed"
 
     else:
         response = ask_ai(user_query)
 
-    # ✅ STORE ASSISTANT RESPONSE
-    memory.append({
-        "role": "assistant",
-        "content": response
-    })
+    # ✅ SAVE RESPONSE
+    memory.append({"role": "assistant", "content": response})
 
     return response
