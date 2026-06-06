@@ -1,31 +1,39 @@
 import streamlit as st
-from database import init_db, seed_data, get_products, get_modules, get_product_modules, get_module_products
+from database import (
+    init_db, seed_data,
+    get_products, get_modules,
+    get_product_modules, get_module_products
+)
 from agent import agent_router
-from database import remove_duplicates
-remove_duplicates()
 
 # -----------------------------------
-# ✅ INITIALIZE DATABASE
+# ✅ INITIALIZE DATABASE (RUN ONCE)
 # -----------------------------------
 init_db()
 seed_data()
 
 # -----------------------------------
-# GET DATA FROM DB
+# ✅ PAGE CONFIG
 # -----------------------------------
-product_data = get_products()   # [(name, desc, repo)]
-module_data = get_modules()     # [(name, desc)]
+st.set_page_config(page_title="BCM AI Repo", layout="wide")
+
+# -----------------------------------
+# ✅ SESSION INIT
+# -----------------------------------
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+# -----------------------------------
+# ✅ FETCH DATA
+# -----------------------------------
+product_data = get_products()
+module_data = get_modules()
 
 products = [p[0] for p in product_data]
 modules = [m[0] for m in module_data]
 
 # -----------------------------------
-# PAGE CONFIG
-# -----------------------------------
-st.set_page_config(page_title="BCM AI Repo", layout="wide")
-
-# -----------------------------------
-# MODERN CSS (ENTERPRISE LOOK)
+# ✅ CSS UI
 # -----------------------------------
 st.markdown("""
 <style>
@@ -37,45 +45,25 @@ st.markdown("""
     color: #0A2F5A;
 }
 
-.card {
-    padding: 15px;
-    border-radius: 12px;
-    background-color: #f8f9fa;
-    box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
-    text-align: center;
-    cursor: pointer;
-    margin-bottom: 10px;
-    transition: 0.3s;
-}
-
-.card:hover {
-    background-color: #e6f0ff;
-    transform: scale(1.03);
-}
-
 .section-title {
     font-size: 20px;
     font-weight: bold;
-    margin-bottom: 10px;
 }
 </style>
 """, unsafe_allow_html=True)
 
 # -----------------------------------
-# HEADER
+# ✅ HEADER
 # -----------------------------------
 st.markdown("<div class='main-title'>🏦 BCM AI REPO</div>", unsafe_allow_html=True)
-
 st.markdown("---")
 
 # -----------------------------------
-# LAYOUT
+# ✅ UI LAYOUT
 # -----------------------------------
 col1, col2 = st.columns(2)
 
-# -----------------------------------
-# PRODUCTS CARDS
-# -----------------------------------
+# ✅ PRODUCTS
 with col1:
     st.markdown("<div class='section-title'>📦 Products</div>", unsafe_allow_html=True)
 
@@ -83,9 +71,7 @@ with col1:
         if st.button(product, key=f"product_{product}"):
             st.session_state.selected_product = product
 
-# -----------------------------------
-# MODULES CARDS
-# -----------------------------------
+# ✅ MODULES
 with col2:
     st.markdown("<div class='section-title'>🧩 Modules</div>", unsafe_allow_html=True)
 
@@ -94,7 +80,7 @@ with col2:
             st.session_state.selected_module = module
 
 # -----------------------------------
-# DISPLAY DETAILS
+# ✅ DISPLAY DETAILS
 # -----------------------------------
 st.markdown("---")
 col3, col4 = st.columns(2)
@@ -104,15 +90,13 @@ with col3:
     if "selected_product" in st.session_state:
         selected_product = st.session_state.selected_product
 
-        # Fetch product info
-        product_info = [p for p in product_data if p[0] == selected_product][0]
+        product_info = next(p for p in product_data if p[0] == selected_product)
         name, desc, repo = product_info
 
         st.markdown(f"### ✅ {name}")
         st.write(desc)
         st.markdown(f"🔗 {repo}")
 
-        # Fetch modules
         modules_list = get_product_modules(name)
 
         st.markdown("#### 📦 Modules")
@@ -124,48 +108,73 @@ with col4:
     if "selected_module" in st.session_state:
         selected_module = st.session_state.selected_module
 
-        # Fetch module info
-        module_info = [m for m in module_data if m[0] == selected_module][0]
+        module_info = next(m for m in module_data if m[0] == selected_module)
         name, desc = module_info
 
         st.markdown(f"### ✅ {name}")
         st.write(desc)
 
-        # Fetch related products
         product_list = get_module_products(name)
 
         st.markdown("#### 🏦 Used in Products")
         for p in product_list:
             st.markdown(f"- 🔗 {p}")
 
+# -----------------------------------
+# ✅ FILE UPLOAD
+# -----------------------------------
+st.markdown("---")
 st.markdown("### 📂 Upload Document")
 
-uploaded_file = st.file_uploader(
-    "Upload PDF / Excel",
-    type=["pdf", "xlsx"]
-)
+uploaded_file = st.file_uploader("Upload PDF or Excel", type=["pdf", "xlsx"])
 
 if uploaded_file:
-    file_path = "temp." + uploaded_file.name.split(".")[-1]
+    file_path = f"temp.{uploaded_file.name.split('.')[-1]}"
 
     with open(file_path, "wb") as f:
         f.write(uploaded_file.read())
 
-    st.success("✅ File Uploaded")
-
+    st.success("✅ File uploaded successfully")
     st.session_state.file_path = file_path
-    
+
 # -----------------------------------
-# CHAT AREA
+# ✅ CHAT SECTION (COPILOT STYLE)
 # -----------------------------------
 st.markdown("---")
 st.markdown("### 💬 Ask Anything")
 
-user_input = st.chat_input("Ask about products, modules, or banking concepts...")
+# ✅ DISPLAY CHAT HISTORY
+for message in st.session_state.chat_history:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# ✅ INPUT
+user_input = st.chat_input("Ask about products, modules, banking...")
 
 if user_input:
+    # ✅ user message
+    st.session_state.chat_history.append({
+        "role": "user",
+        "content": user_input
+    })
+
+    with st.chat_message("user"):
+        st.markdown(user_input)
+
+    # ✅ AI response
     with st.spinner("Thinking..."):
         response = agent_router(user_input)
 
-    st.markdown("### 🤖 Response")
-    st.markdown(response)
+    with st.chat_message("assistant"):
+        st.markdown(response)
+
+    st.session_state.chat_history.append({
+        "role": "assistant",
+        "content": response
+    })
+
+# -----------------------------------
+# ✅ CLEAR CHAT BUTTON
+# -----------------------------------
+if st.button("🗑️ Clear Chat"):
+    st.session_state.chat_history = []
