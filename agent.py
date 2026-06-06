@@ -9,19 +9,23 @@ from file_processor import process_excel
 
 
 # ✅ -------------------------------
-# MEMORY INITIALIZATION
+# MEMORY INITIALIZATION (SAFE)
 # ✅ -------------------------------
 if "memory" not in st.session_state:
-    st.session_state.memory = []
+    st.session_state["memory"] = []
 
 
 def agent_router(user_query):
     query = user_query.lower()
 
-    # ✅ -------------------------------
-    # STORE USER MESSAGE IN MEMORY
-    # ✅ -------------------------------
-    st.session_state.memory.append({
+    # ✅ SAFELY GET MEMORY
+    if "memory" not in st.session_state:
+        st.session_state["memory"] = []
+
+    memory = st.session_state["memory"]
+
+    # ✅ STORE USER QUERY
+    memory.append({
         "role": "user",
         "content": user_query
     })
@@ -32,12 +36,11 @@ def agent_router(user_query):
     repo_response = repo_agent(user_query)
 
     # ✅ -------------------------------
-    # STEP 2 — MULTI-TOOL CHAINING (Repo + RAG)
+    # STEP 2 — MULTI-TOOL CHAINING
+    # (Repo + Document)
     # ✅ -------------------------------
-    if (
-        ("pdf" in query or "document" in query)
-        and repo_response
-    ):
+    if ("pdf" in query or "document" in query) and repo_response:
+
         file_path = st.session_state.get("file_path", "temp.pdf")
 
         if os.path.exists(file_path):
@@ -50,20 +53,20 @@ def agent_router(user_query):
 
         response = (
             "🧠 Combined AI Response\n\n"
-            "📦 Repo Info:\n" + repo_response + "\n\n"
+            "📦 Repo Knowledge:\n" + repo_response + "\n\n"
             "📄 Document Insight:\n" + rag_answer
         )
 
-        st.session_state.memory.append({
+        memory.append({
             "role": "assistant",
             "content": response
         })
 
         return response
 
-    # ✅ If repo found → return
+    # ✅ If repo alone is enough
     if repo_response:
-        st.session_state.memory.append({
+        memory.append({
             "role": "assistant",
             "content": repo_response
         })
@@ -85,16 +88,29 @@ def agent_router(user_query):
         action = "rag"
 
     elif "excel" in query:
-        response = "📊 Excel processing available in upload section."
-        st.session_state.memory.append({
+        try:
+            file_path = st.session_state.get("file_path", None)
+
+            if file_path and file_path.endswith(".xlsx"):
+                excel_data = process_excel(file_path)
+
+                response = "📊 Excel Data Preview:\n\n" + excel_data
+            else:
+                response = "⚠️ Please upload an Excel file."
+
+        except Exception:
+            response = "⚠️ Error processing Excel file."
+
+        memory.append({
             "role": "assistant",
             "content": response
         })
+
         return response
 
     else:
         # ✅ -------------------------------
-        # STEP 4 — LLM DECISION (WITH MEMORY)
+        # STEP 4 — LLM DECISION WITH MEMORY
         # ✅ -------------------------------
         decision_prompt = (
             "You are an intelligent AI agent.\n\n"
@@ -104,7 +120,7 @@ def agent_router(user_query):
             "- financial_analysis\n"
             "- rag\n"
             "- general_chat\n\n"
-            f"Conversation history:\n{st.session_state.memory}\n\n"
+            f"Conversation history:\n{memory}\n\n"
             f"Query: {user_query}\n\n"
             "Return ONLY one action."
         )
@@ -158,18 +174,15 @@ def agent_router(user_query):
         else:
             try:
                 answer, _ = rag_pipeline(file_path, user_query)
-
                 response = "📄 Document-Based Answer\n\n" + answer
-            except Exception as e:
-                response = f"⚠️ Error: {str(e)}"
+            except Exception:
+                response = "⚠️ Error processing document."
 
     else:
         response = ask_ai(user_query)
 
-    # ✅ -------------------------------
-    # STORE RESPONSE IN MEMORY
-    # ✅ -------------------------------
-    st.session_state.memory.append({
+    # ✅ STORE ASSISTANT RESPONSE
+    memory.append({
         "role": "assistant",
         "content": response
     })
