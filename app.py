@@ -1,6 +1,21 @@
 import streamlit as st
-from bcm_data import products, modules
+from database import init_db, seed_data, get_products, get_modules, get_product_modules, get_module_products
 from agent import agent_router
+
+# -----------------------------------
+# ✅ INITIALIZE DATABASE
+# -----------------------------------
+init_db()
+seed_data()
+
+# -----------------------------------
+# GET DATA FROM DB
+# -----------------------------------
+product_data = get_products()   # [(name, desc, repo)]
+module_data = get_modules()     # [(name, desc)]
+
+products = [p[0] for p in product_data]
+modules = [m[0] for m in module_data]
 
 # -----------------------------------
 # PAGE CONFIG
@@ -77,42 +92,52 @@ with col2:
             st.session_state.selected_module = module
 
 # -----------------------------------
-# DISPLAY DETAILS (CENTER PANEL)
+# DISPLAY DETAILS
 # -----------------------------------
 st.markdown("---")
-
 col3, col4 = st.columns(2)
 
-# ---------------- PRODUCT DETAILS
+# ✅ PRODUCT DETAILS
 with col3:
     if "selected_product" in st.session_state:
-        p = st.session_state.selected_product
-        data = products[p]
+        selected_product = st.session_state.selected_product
 
-        st.markdown(f"### ✅ {p}")
-        st.write(data["description"])
+        # Fetch product info
+        product_info = [p for p in product_data if p[0] == selected_product][0]
+        name, desc, repo = product_info
 
-        st.markdown(f"{data['repo_link']}")
+        st.markdown(f"### ✅ {name}")
+        st.write(desc)
+        st.markdown(f"🔗 {repo}")
+
+        # Fetch modules
+        modules_list = get_product_modules(name)
 
         st.markdown("#### 📦 Modules")
-        for m in data["modules"]:
+        for m in modules_list:
             st.markdown(f"- 🔗 {m}")
 
-# ---------------- MODULE DETAILS
+# ✅ MODULE DETAILS
 with col4:
     if "selected_module" in st.session_state:
-        m = st.session_state.selected_module
-        data = modules[m]
+        selected_module = st.session_state.selected_module
 
-        st.markdown(f"### ✅ {m}")
-        st.write(data["description"])
+        # Fetch module info
+        module_info = [m for m in module_data if m[0] == selected_module][0]
+        name, desc = module_info
+
+        st.markdown(f"### ✅ {name}")
+        st.write(desc)
+
+        # Fetch related products
+        product_list = get_module_products(name)
 
         st.markdown("#### 🏦 Used in Products")
-        for p in data["products"]:
+        for p in product_list:
             st.markdown(f"- 🔗 {p}")
 
 # -----------------------------------
-# CHAT AREA (BOTTOM)
+# CHAT AREA
 # -----------------------------------
 st.markdown("---")
 st.markdown("### 💬 Ask Anything")
