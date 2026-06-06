@@ -1,6 +1,8 @@
 import streamlit as st
 from database import init_db, seed_data, get_products, get_modules, get_product_modules, get_module_products
 from agent import agent_router
+from database import remove_duplicates
+remove_duplicates()
 
 # -----------------------------------
 # ✅ INITIALIZE DATABASE
