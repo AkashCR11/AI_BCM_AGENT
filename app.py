@@ -1,175 +1,145 @@
 import streamlit as st
-import pandas as pd
+from bcm_data import products, modules
+from agent import agent_router
+import networkx as nx
 import matplotlib.pyplot as plt
 
-from agent import agent_router
-from test_case_generator import generate_test_cases
-from fraud_detection import detect_fraud
-from financial_analysis import analyze_financial_data
-
-
-# -------------------------------------------
+# ----------------------------------
 # PAGE CONFIG
-# -------------------------------------------
-st.set_page_config(
-    page_title="AI BCM Agent",
-    page_icon="🤖",
-    layout="wide"
-)
+# ----------------------------------
+st.set_page_config(page_title="BCM AI", layout="wide")
 
-st.title("🤖 Agentic AI - Banking & Capital Market Assistant")
-st.caption("Powered by Azure GPT-4o + Agentic AI")
+# ----------------------------------
+# DARK THEME (EY STYLE)
+# ----------------------------------
+st.markdown("""
+<style>
+body {
+    background-color: #0E1117;
+    color: white;
+}
 
-# -------------------------------------------
-# MEMORY (ChatGPT style)
-# -------------------------------------------
-if "history" not in st.session_state:
-    st.session_state.history = []
+h1, h2, h3 {
+    color: #4B8BBE;
+}
 
-# -------------------------------------------
-# SIDEBAR
-# -------------------------------------------
-with st.sidebar:
-    st.header("📌 Select Module")
-    menu = st.selectbox(
-        "",
-        [
-            "AI Banking Chatbot",
-            "AI Test Case Generator",
-            "Fraud Detection",
-            "Financial Analysis"
-        ]
-    )
+.stButton button {
+    background-color: #1E1E1E;
+    color: white;
+    border-radius: 10px;
+    padding: 10px;
+    width: 100%;
+}
 
-    st.markdown("---")
-    st.markdown("### ✅ Features")
-    st.markdown("""
-    - GPT‑4o Chatbot  
-    - Agentic AI Routing  
-    - Fraud Detection  
-    - Test Case Generator  
-    - Financial Analytics  
-    - PDF RAG Support ✅
-    """)
+.stButton button:hover {
+    background-color: #4B8BBE;
+}
+</style>
+""", unsafe_allow_html=True)
 
-# -------------------------------------------
-# AI CHATBOT (AGENTIC + MEMORY + RAG)
-# -------------------------------------------
-if menu == "AI Banking Chatbot":
-    st.header("💬 AI Banking Agent")
+# ----------------------------------
+# HEADER
+# ----------------------------------
+st.markdown("<h1 style='text-align:center;'>🌙 BCM AI REPO</h1>", unsafe_allow_html=True)
 
-    # ✅ PDF Upload (RAG)
-    uploaded_file = st.file_uploader("📄 Upload PDF for AI Analysis", type="pdf")
+# ----------------------------------
+# 🔍 SEARCH BAR
+# ----------------------------------
+search = st.text_input("🔍 Search Products / Modules")
 
-    if uploaded_file:
-        with open("temp.pdf", "wb") as f:
-            f.write(uploaded_file.read())
+# ----------------------------------
+# FILTER DATA
+# ----------------------------------
+filtered_products = [
+    p for p in products if search.lower() in p.lower()
+] if search else list(products.keys())
 
-        st.success("✅ PDF uploaded successfully. You can now ask questions about it!")
+filtered_modules = [
+    m for m in modules if search.lower() in m.lower()
+] if search else list(modules.keys())
 
-    # Display history first
-    for role, message in st.session_state.history:
-        with st.chat_message(role):
-            st.markdown(message)
+# ----------------------------------
+# CARD GRID FUNCTION
+# ----------------------------------
+def show_cards(items, key_prefix):
+    cols = st.columns(4)
 
-    # Chat input
-    user_input = st.chat_input("Ask banking or capital market questions...")
+    for i, item in enumerate(items):
+        with cols[i % 4]:
+            if st.button(item, key=f"{key_prefix}_{item}"):
+                st.session_state.selected = item
 
-    if user_input:
-        # Show user message
-        with st.chat_message("user"):
-            st.markdown(user_input)
+# ----------------------------------
+# PRODUCTS GRID
+# ----------------------------------
+st.subheader("📦 Products")
+show_cards(filtered_products, "product")
 
-        # Save user message
-        st.session_state.history.append(("user", user_input))
+# ----------------------------------
+# MODULES GRID
+# ----------------------------------
+st.subheader("🧩 Modules")
+show_cards(filtered_modules, "module")
 
-        try:
-            with st.spinner("AI Agent thinking..."):
-                response = agent_router(user_input)
+# ----------------------------------
+# POPUP PANEL (DETAIL VIEW)
+# ----------------------------------
+st.markdown("---")
 
-            # Show assistant response
-            with st.chat_message("assistant"):
-                st.markdown(response)
+if "selected" in st.session_state:
+    name = st.session_state.selected
 
-            # Save response
-            st.session_state.history.append(("assistant", response))
+    if name in products:
+        data = products[name]
 
-        except Exception as error:
-            st.error("Unable to generate response.")
-            st.exception(error)
+        st.markdown(f"### ✅ Product: {name}")
+        st.write(data["description"])
 
-# -------------------------------------------
-# TEST CASE GENERATOR
-# -------------------------------------------
-elif menu == "AI Test Case Generator":
-    st.header("🧪 AI Test Case Generator")
+        st.markdown(f"🔗 {data['repo_link']}")
 
-    module_name = st.text_input("Enter Banking Module Name")
+        st.write("### Modules")
+        for m in data["modules"]:
+            st.write(f"➡️ {m}")
 
-    if st.button("Generate Test Cases"):
-        if not module_name or not module_name.strip():
-            st.warning("Please enter a module name.")
-        else:
-            try:
-                with st.spinner("Generating Test Cases..."):
-                    test_cases = generate_test_cases(module_name)
+    elif name in modules:
+        data = modules[name]
 
-                st.success("Test Cases Generated ✅")
-                st.markdown(test_cases)
+        st.markdown(f"### ✅ Module: {name}")
+        st.write(data["description"])
 
-            except Exception as error:
-                st.error("Error generating test cases.")
-                st.exception(error)
+        st.write("### Used in Products")
+        for p in data["products"]:
+            st.write(f"➡️ {p}")
 
-# -------------------------------------------
-# FRAUD DETECTION
-# -------------------------------------------
-elif menu == "Fraud Detection":
-    st.header("🚨 AI Fraud Detection")
+# ----------------------------------
+# GRAPH VISUALIZATION
+# ----------------------------------
+st.markdown("---")
+st.subheader("📊 Product ↔ Module Graph")
 
-    if st.button("Run Fraud Detection"):
-        try:
-            with st.spinner("Analyzing transactions..."):
-                fraud_data = detect_fraud()
+G = nx.Graph()
 
-            st.subheader("Suspicious Transactions")
-            st.dataframe(fraud_data)
+# Add edges
+for p, pdata in products.items():
+    for m in pdata["modules"]:
+        G.add_edge(p, m)
 
-        except Exception as error:
-            st.error("Fraud detection failed.")
-            st.exception(error)
+fig, ax = plt.subplots()
+nx.draw(G, with_labels=True, node_color="skyblue", node_size=2000, ax=ax)
 
-# -------------------------------------------
-# FINANCIAL ANALYSIS
-# -------------------------------------------
-elif menu == "Financial Analysis":
-    st.header("📊 Financial Analysis Dashboard")
+st.pyplot(fig)
 
-    try:
-        analysis = analyze_financial_data()
+# ----------------------------------
+# CHATBOT
+# ----------------------------------
+st.markdown("---")
+st.subheader("💬 AI Assistant")
 
-        col1, col2 = st.columns(2)
+user_input = st.chat_input("Ask anything...")
 
-        with col1:
-            st.metric("Total Transactions", analysis['Total Transactions'])
-            st.metric("Total Amount", analysis['Total Amount'])
+if user_input:
+    with st.spinner("Thinking..."):
+        response = agent_router(user_input)
 
-        with col2:
-            st.metric("Average Transaction", analysis['Average Transaction'])
-            st.metric("Highest Transaction", analysis['Highest Transaction'])
-
-        # Load data
-        data = pd.read_csv("data/banking_transactions.csv")
-
-        # Plot
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.plot(data['transaction_id'], data['amount'])
-        ax.set_title("Transaction Amount Analysis")
-        ax.set_xlabel("Transaction ID")
-        ax.set_ylabel("Amount")
-
-        st.pyplot(fig)
-
-    except Exception as error:
-        st.error("Financial analysis failed.")
-        st.exception(error)
+    st.markdown("### 🤖 Response")
+    st.markdown(response)
