@@ -1,9 +1,8 @@
 import streamlit as st
 
-# ✅ Dummy users (you can replace with DB later)
 USERS = {
-    "admin": "admin123",
-    "user": "user123"
+    "admin": {"password": "admin123", "role": "admin"},
+    "user": {"password": "user123", "role": "user"}
 }
 
 
@@ -14,10 +13,10 @@ def login():
     password = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        if username in USERS and USERS[username] == password:
+        if username in USERS and USERS[username]["password"] == password:
             st.session_state.logged_in = True
             st.session_state.user = username
-            st.success("✅ Login successful")
+            st.session_state.role = USERS[username]["role"]
             st.rerun()
         else:
             st.error("❌ Invalid credentials")
@@ -27,4 +26,5 @@ def logout():
     if st.sidebar.button("🚪 Logout"):
         st.session_state.logged_in = False
         st.session_state.user = None
+        st.session_state.role = None
         st.rerun()
