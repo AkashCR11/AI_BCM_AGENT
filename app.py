@@ -171,17 +171,33 @@ if menu == "Dashboard":
     # -----------------------------------
     # DOWNLOAD REPORT
     # -----------------------------------
-    if st.button("Download Chat Report"):
-        report = ""
+    if st.button("📄 Download PDF Report"):
+
+        file_path = "chat_report.pdf"
+
+        c = canvas.Canvas(file_path, pagesize=letter)
+        width, height = letter
+
+        y = height - 40
 
         for msg in st.session_state.chat_history:
-            report += f"{msg['role']}:\n{msg['content']}\n\n"
+            text = f"{msg['role']}:\n{msg['content']}\n\n"
 
-        st.download_button(
-            "Download",
-            data=report,
-            file_name="chat_report.txt"
-        )
+            for line in text.split("\n"):
+                c.drawString(40, y, line)
+                y -= 15
+                if y < 50:
+                    c.showPage()
+                    y = height - 40
+
+        c.save()
+
+        with open(file_path, "rb") as f:
+            st.download_button(
+                "Download PDF",
+                f,
+                file_name="BCM_AI_Report.pdf"
+            )
 
     # CLEAR CHAT
     if st.button("Clear Chat"):
