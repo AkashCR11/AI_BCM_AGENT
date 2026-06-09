@@ -44,10 +44,10 @@ if "chat_history" not in st.session_state:
 # -----------------------------------
 st.sidebar.title("Navigation")
 
-menu = st.sidebar.radio(
-    "Go to",
-    ["Dashboard", "Admin Panel"]
-)
+if st.session_state.role == "admin":
+    menu = st.sidebar.radio("Navigation", ["Dashboard", "Admin Panel"])
+else:
+    menu = st.sidebar.radio("Navigation", ["Dashboard"])
 auth.logout()
 
 # =========================================================
